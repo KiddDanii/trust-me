@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Confia</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: black;
+      font-family: Comic Sans MS, cursive;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 0;
+    }
+
+    body.party-mode {
+      background: linear-gradient(45deg, #ff0055, #00ffff, #ffcc00, #9900ff);
+      background-size: 600% 600%;
+      animation: partyBG 8s ease infinite, flash 1s infinite;
+    }
+
+    @keyframes partyBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @keyframes flash {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.4); }
+    }
+
+    #clickButton {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 20px 50px;
+      font-size: 28px;
+      background-color: white;
+      color: black;
+      border: 5px solid #ff00ff;
+      border-radius: 15px;
+      cursor: pointer;
+      z-index: 3;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.1); }
+      100% { transform: translate(-50%, -50%) scale(1); }
+    }
+
+    .catGif {
+      position: absolute;
+      width: 150px;
+      max-width: 25vw;
+      height: auto;
+      animation: float 10s linear infinite;
+      z-index: 2;
+    }
+
+    @keyframes float {
+      0%   { transform: translateY(0px) rotate(0deg); }
+      50%  { transform: translateY(-20px) rotate(10deg); }
+      100% { transform: translateY(0px) rotate(0deg); }
+    }
+
+    .glitch-img {
+      animation: glitch 0.3s infinite;
+    }
+
+    @keyframes glitch {
+      0% { transform: translate(0); }
+      20% { transform: translate(-2px, 2px); }
+      40% { transform: translate(2px, -2px); }
+      60% { transform: translate(-1px, 1px); }
+      80% { transform: translate(1px, -1px); }
+      100% { transform: translate(0); }
+    }
+
+    #terminal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: black;
+      color: #00ff00;
+      font-family: monospace;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 9999;
+      padding: 20px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <button id="clickButton">CONFIA EN MI</button>
+  <div id="catContainer"></div>
+  <div id="terminal" style="display:none;"></div>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+
+    const button = document.getElementById("clickButton");
+    const catContainer = document.getElementById("catContainer");
+    const terminal = document.getElementById("terminal");
+    const body = document.body;
+
+    const audio = new Audio('conga.mp3');
+    audio.loop = true;
+    const alarma = new Audio('alarma.mp3');
+    alarma.loop = true;
+
+    const mensajes = [
+      "[ INICIANDO PROTOCOLO DE INTRUSIÓN ]",
+      "Estableciendo conexión...",
+      "Acceso no autorizado detectado...",
+      "Descargando datos confidenciales...",
+      "Sistema comprometido.",
+      "Autodestrucción en 3...",
+      "2...",
+      "1...",
+      "..."
+    ];
+
+    const gifList = [
+      "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExa2VzbXk5Z2sxcnJ3dDN2cDV4NzllZXdsNTJnNmZ3YTlqcGZ2ZDNyYiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l3vRlT2k2L35Cnn5C/giphy.gif",
+      "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExOGtya285N2FjaTQzcGZ2dTZpOWozZ3UycWZwMzN5cXBrNXN6cWplcSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l3vR92CPOYrK25yLu/giphy.gif",
+      "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3d24ydXdpbzAxNmZsOXhkZW9ibW56eG51ZnBlbDVlcXdhZWR4Yjl3ZiZlcD12MV9naWZzX3JlbGF0ZWQmY3Q9Zw/3ohhwfAa9rbXaZe86c/giphy.gif",
+      "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3czZzYjg1NWgwem94b3Fucm4wcmlmeWFmY203YzF0djR2MTZ4ejUybyZlcD12MV9naWZzX3JlbGF0ZWQmY3Q9Zw/ujTVMASREzuRbH6zy5/giphy.gif",
+      "https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3NXNlaXowdTlyb3FrcHZ2Y29yYjJ3eWJxMmYyc2dpbG43aDY4ajF2eSZlcD12MV9naWZzX3JlbGF0ZWQmY3Q9Zw/VGsT1jzgSQM5a/giphy.gif",
+      "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExczh3cnYxanRycTExMHRhYTd4cTJvNHl5ZmdmYms2anF3Zm11bTJoNCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/117FHDNGAJmVTG/giphy.gif"
+    ];
+
+    const colors = ['#ff69b4', '#ff1493', '#ffa07a', '#ffc0cb', '#db7093', '#ffb6c1'];
+
+    const galaxy = [];
+    for (let i = 0; i < 300; i++) {
+      galaxy.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        size: Math.random() * 6 + 3,
+        speedX: (Math.random() - 0.5) * 0.3,
+        speedY: (Math.random() - 0.5) * 0.3,
+        opacity: Math.random() * 0.15 + 0.05,
+        color: colors[Math.floor(Math.random() * colors.length)]
+      });
+    }
+
+    const hearts = [];
+    function createHeart() {
+      hearts.push({
+        x: Math.random() * width,
+        y: height + 20,
+        size: 30 + Math.random() * 20,
+        speed: 1 + Math.random() * 1.5,
+        opacity: 0.5 + Math.random() * 0.5
+      });
+    }
+
+    const fireworks = [];
+    function createExplosion(x = Math.random() * width, y = Math.random() * height / 2) {
+      const count = 30 + Math.floor(Math.random() * 30);
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count;
+        const speed = Math.random() * 4 + 2;
+        fireworks.push({
+          x, y,
+          dx: Math.cos(angle) * speed,
+          dy: Math.sin(angle) * speed,
+          alpha: 1,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          text: "💥",
+          size: 30 + Math.random() * 20
+        });
+      }
+    }
+
+    function spawnCat() {
+      const img = document.createElement('img');
+      img.src = gifList[Math.floor(Math.random() * gifList.length)];
+      img.className = 'catGif';
+      img.style.top = Math.random() * 90 + '%';
+      img.style.left = Math.random() * 90 + '%';
+      catContainer.appendChild(img);
+    }
+
+    function draw() {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+      ctx.fillRect(0, 0, width, height);
+
+      galaxy.forEach(star => {
+        star.x += star.speedX;
+        star.y += star.speedY;
+
+        if (star.x < 0) star.x = width;
+        if (star.x > width) star.x = 0;
+        if (star.y < 0) star.y = height;
+        if (star.y > height) star.y = 0;
+
+        ctx.globalAlpha = star.opacity;
+        ctx.font = `${star.size}px monospace`;
+        ctx.fillStyle = star.color;
+        ctx.fillText("✨", star.x, star.y);
+      });
+
+      hearts.forEach((h, index) => {
+        ctx.globalAlpha = h.opacity;
+        ctx.font = `${h.size}px monospace`;
+        ctx.fillStyle = '#ff69b4';
+        ctx.fillText("🎈", h.x, h.y);
+        h.y -= h.speed;
+        if (h.y < -50) hearts.splice(index, 1);
+      });
+
+      fireworks.forEach((p, index) => {
+        ctx.globalAlpha = p.alpha;
+        ctx.font = `${p.size}px monospace`;
+        ctx.fillStyle = p.color;
+        ctx.fillText(p.text, p.x, p.y);
+        p.x += p.dx;
+        p.y += p.dy;
+        p.alpha -= 0.02;
+        if (p.alpha <= 0) fireworks.splice(index, 1);
+      });
+    }
+
+    setInterval(draw, 50);
+
+    window.addEventListener('resize', () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    });
+
+    document.body.addEventListener("click", e => {
+      createExplosion(e.clientX, e.clientY);
+    });
+
+    button.addEventListener('click', () => {
+      button.style.display = 'none';
+      body.classList.add('party-mode');
+      audio.play();
+
+      const catInterval = setInterval(spawnCat, 700);
+      const heartInterval = setInterval(createHeart, 500);
+      const explosionInterval = setInterval(createExplosion, 2000);
+
+      setTimeout(() => {
+        clearInterval(catInterval);
+        clearInterval(heartInterval);
+        clearInterval(explosionInterval);
+        catContainer.innerHTML = '';
+
+        audio.pause();
+        alarma.currentTime = 0;
+        alarma.play();
+
+        terminal.style.display = 'flex';
+
+        let i = 0;
+        const interval = setInterval(() => {
+          if (i < mensajes.length) {
+            terminal.innerHTML += mensajes[i] + '<br>';
+            i++;
+          } else {
+            clearInterval(interval);
+            setTimeout(() => {
+              document.body.innerHTML = `
+                <div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:black;display:flex;flex-direction:column;align-items:center;justify-content:center;color:red;font-size:2rem;font-family:monospace;text-align:center;animation:glitch 0.5s infinite;">
+                  <img src="cristal-roto.png" style="position:absolute;width:100%;height:100%;object-fit:cover;opacity:0.5;">
+                  <img src="calavera.png" class="glitch-img" style="width:150px;margin-bottom:20px;">
+                  <div style="color:white;font-size:3rem;">ERROR 0xDEAD</div>
+                  <p style="color:red;margin-top:20px;max-width:600px;">
+                    Tu sistema ha sido hackeado.<br>
+                    Se ha adquirido el control total.<br><br>
+                    <span style="font-size:1.5rem;color:white;">Ten muy buenos dias...</span>
+                  </p>
+                </div>
+              `;
+              const sonidoCristal = new Audio('cristal-roto.mp3');
+              sonidoCristal.play();
+            }, 1000);
+          }
+        }, 1500);
+
+      }, 10000);
+    });
+  </script>
+</body>
+</html>
